@@ -1,0 +1,1 @@
+c:\users\victor\documents\visual studio 2015\Projects\NeuralNetworkBackProp\NeuralNetworkBackProp\bin\Debug\NeuralNetworkBackProp.exe.config
