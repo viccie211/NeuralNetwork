@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace NeuralNetworkBackProp
@@ -42,8 +43,8 @@ namespace NeuralNetworkBackProp
 
     class Net
     {
-        const int HIDDEN_LAYERS_COUNT = 4;
-        const int NEURONS_PER_LAYER_COUNT = 9;
+        const int HIDDEN_LAYERS_COUNT = 3;
+        const int NEURONS_PER_LAYER_COUNT = 5;
 
         public List<Neuron[]> AllLayers { get; set; }
 
@@ -57,7 +58,7 @@ namespace NeuralNetworkBackProp
 
             Neuron inputA = new Neuron();
             Neuron inputB = new Neuron();
-            Neuron[] inputLayer = new Neuron[] { inputA, inputB };
+            Neuron[] inputLayer = new Neuron[] { inputA, inputB};
             AllLayers = new List<Neuron[]>();
             AllLayers.Add(inputLayer);
 
@@ -88,7 +89,8 @@ namespace NeuralNetworkBackProp
             string result = "";
             for (int a = 0; a < training.Length; a++)
             {
-                AllLayers[0][0].Value = indexOfAsFraction(training[a]);
+                char lookAt = training[a];
+                AllLayers[0][0].Value = indexOfAsFraction(lookAt);
                 if (a == 0)
                 {
                     AllLayers[0][1].Value = indexOfAsFraction('$');//this needs to become the output of the last or this character when it's the first
@@ -114,14 +116,15 @@ namespace NeuralNetworkBackProp
                     double error = calculateError(expected);
                     double loss = Math.Pow(error, 2);
                     double derLoss = 2 * error;
-                    Console.WriteLine("error: " + error);
                     foreach(Neuron n in AllLayers.Last())
                     {
                         n.backProp(derLoss);
                     }
+                    Console.WriteLine(error);
                 }
                 lastResult = getResult();
-                Console.Write(lastResult);
+                //Console.Write(lastResult);
+                
                 result += lastResult;
             }
             return result;
@@ -156,6 +159,7 @@ namespace NeuralNetworkBackProp
                 if(n.Value>highest)
                 {
                     index = counter;
+                    highest = n.Value;
                 }
                 counter++;
             }
@@ -203,17 +207,19 @@ namespace NeuralNetworkBackProp
 
         public Neuron(Neuron[] lastLayer)
         {
-            Random random = new Random();
+            
             this.Axxons = new List<KeyValuePair<Neuron, double>>();
 
             foreach (Neuron neuron in lastLayer)
             {
+                Random random = new Random(DateTime.Now.Millisecond);
                 double weight = random.NextDouble();
                 int negOrPos = random.Next(0, 2);
                 if(negOrPos==0)
                 {
                     weight = -weight;
                 }
+                Thread.Sleep(1);
                 this.Axxons.Add(new KeyValuePair<Neuron, double>(neuron,weight));
             }
         }
