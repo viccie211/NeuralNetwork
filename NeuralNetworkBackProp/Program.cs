@@ -11,17 +11,20 @@ namespace NeuralNetworkBackProp
         private const int TRANING_CHUNK_SIZE = 100;
         static void Main(string[] args)
         {
-            string input = readInputText("input");
+            string input = readInputText("bible.txt");
             string[] trainingData = Split(input,TRANING_CHUNK_SIZE);
             List<char> vocab= input.Distinct().ToList();
-            vocab.Insert(0, 'Ϫ');//Add a "begin of training" character
+            vocab.Insert(0, '$');//Add a "begin of training" character
 
             Net neuralNet = new Net(vocab);
 
             Random random = new Random();
             for(int i=0;i<10000000;i++)
             {
+                Console.WriteLine("-----------------------------------------------------");
                 neuralNet.train(trainingData[random.Next(trainingData.Length)]);
+                Console.WriteLine("");
+                Console.WriteLine("-----------------------------------------------------");
             }
         }
 
@@ -39,12 +42,14 @@ namespace NeuralNetworkBackProp
 
     class Net
     {
-        const int HIDDEN_LAYERS_COUNT = 5;
-        const int NEURONS_PER_LAYER_COUNT = 20;
+        const int HIDDEN_LAYERS_COUNT = 4;
+        const int NEURONS_PER_LAYER_COUNT = 9;
 
         public List<Neuron[]> AllLayers { get; set; }
 
         public List<char> vocab { get; set; }
+
+        private char lastResult = '$';
 
         public Net(List<char> vocab)
         {
@@ -78,12 +83,21 @@ namespace NeuralNetworkBackProp
             AllLayers.Add(outputLayer.ToArray());
         }
 
-        public void train(string training)
+        public string train(string training)
         {
+            string result = "";
             for (int a = 0; a < training.Length; a++)
             {
                 AllLayers[0][0].Value = indexOfAsFraction(training[a]);
-                AllLayers[0][1].Value = indexOfAsFraction('Ϫ');//this needs to become the output of the last or this character when it's the first
+                if (a == 0)
+                {
+                    AllLayers[0][1].Value = indexOfAsFraction('$');//this needs to become the output of the last or this character when it's the first
+                }
+                else
+                {
+                    AllLayers[0][1].Value = indexOfAsFraction(lastResult);//this needs to become the output of the last or this character when it's the first
+                }
+                
 
                 for (int i=1;i<AllLayers.Count;i++)//start at 1 because we need to skip the input layer
                 {
@@ -100,9 +114,17 @@ namespace NeuralNetworkBackProp
                     double error = calculateError(expected);
                     double loss = Math.Pow(error, 2);
                     double derLoss = 2 * error;
+                    Console.WriteLine("error: " + error);
+                    foreach(Neuron n in AllLayers.Last())
+                    {
+                        n.backProp(derLoss);
+                    }
                 }
-                
+                lastResult = getResult();
+                Console.Write(lastResult);
+                result += lastResult;
             }
+            return result;
         }
 
         private double[] buildExpectations(char c)
@@ -122,6 +144,22 @@ namespace NeuralNetworkBackProp
             }
 
             return result.ToArray();
+        }
+
+        private char getResult()
+        {
+            int index = 0;
+            double highest=double.MinValue;
+            int counter = 0;
+            foreach(var n in AllLayers.Last())
+            {
+                if(n.Value>highest)
+                {
+                    index = counter;
+                }
+                counter++;
+            }
+            return vocab[index];
         }
 
         private double calculateError(double[] expected)
@@ -146,14 +184,17 @@ namespace NeuralNetworkBackProp
 
         private double indexOfAsFraction(char c)
         {
-            return (double)vocab.IndexOf(c) + 1.0 / (double)vocab.Count();
+            double result = ((double)vocab.IndexOf(c) + 1.0) / (double)vocab.Count();
+            return result;
         }
     }
 
     class Neuron
     {
+        private const double LEARNING_RATE = 0.01;
         public double Value { get; set; }
         public List<KeyValuePair<Neuron, double>> Axxons { get; set; }
+        
 
         public Neuron()
         {
@@ -179,8 +220,12 @@ namespace NeuralNetworkBackProp
 
         public void backProp(double derLoss)
         {
-            //loop backwards through axxons update doubles to old - derLoss*learningRate
-            //call backprop for all neurons in axxons with e^value/(e^value+1)^2
+            for(int i =Axxons.Count-1;i>0;i--)
+            {
+                double newWeight = Axxons[i].Value - derLoss * LEARNING_RATE;
+                Axxons[i] = new KeyValuePair<Neuron, double>(Axxons[i].Key, newWeight);
+                Axxons[i].Key.backProp((Math.Pow(Math.E, Value) / Math.Pow(Math.Pow(Math.E, Value + 1.0), 2)));
+            }
         }
 
         public void CalculateValue()
