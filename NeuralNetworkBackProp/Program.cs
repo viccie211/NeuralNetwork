@@ -104,9 +104,13 @@ namespace NeuralNetworkBackProp
                 for (int i=1;i<AllLayers.Count;i++)//start at 1 because we need to skip the input layer
                 {
                     foreach(Neuron neuron in AllLayers[i])
+                    List<Task> tasks = new List<Task>();
+                    foreach (Neuron neuron in AllLayers[i])
                     {
                         neuron.CalculateValue();
+                        tasks.Add(Task.Factory.StartNew(() => neuron.CalculateValue()));
                     }
+                    Task.WaitAll(tasks.ToArray());
                 }
 
                 if(a!=training.Length-1)
@@ -196,6 +200,7 @@ namespace NeuralNetworkBackProp
     class Neuron
     {
         private const double LEARNING_RATE = 0.01;
+        private const double LEARNING_RATE = 0.000001;
         public double Value { get; set; }
         public List<KeyValuePair<Neuron, double>> Axxons { get; set; }
         
@@ -243,7 +248,6 @@ namespace NeuralNetworkBackProp
                 tempValue += axxon.Key.Value * axxon.Value;
             }
 
-            Value = 1 / (1 + Math.Pow(Math.E, -tempValue));
         }
     }
 }
